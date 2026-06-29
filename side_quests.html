@@ -192,6 +192,8 @@ async function loadQuests() {
     const res = await fetch(`${API}/quests`);
     const data = await res.json();
 
+    console.log(data);
+
     quests = data.map(q => ({
         id: q.id,
         title: q.title,
@@ -200,6 +202,8 @@ async function loadQuests() {
         createdAt: q.created_at,
         tagIds: q.tags.map(t => t.id)
     }));
+
+    console.log(quests);
 
     render();
 }
@@ -257,7 +261,7 @@ async function saveEdit() {
   if (!formData.title.trim()) return;
 
   await fetch(`${API}/quests/${editingQuest.id}`, {
-    method: "PUT",
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json"
     },
@@ -287,7 +291,7 @@ async function setStatus(id, status) {
   const quest = quests.find(q => q.id === id);
 
   await fetch(`${API}/quests/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json"
     },
