@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side Quests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1814;
+    --ink2: #4a4640;
+    --ink3: #8a8480;
+    --paper: #f7f4ef;
+    --paper2: #ede9e2;
+    --paper3: #e2ddd5;
+    --gold: #c8860a;
+    --gold-bg: #fdf3dc;
+    --gold-border: #e8c46a;
+    --done-bg: #eef5ee;
+    --done-ink: #3a7a3a;
+    --skip-bg: #f5f0f0;
+    --skip-ink: #9a7070;
+    --radius: 10px;
+    --tag-radius: 20px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .app { max-width: 720px; margin: 0 auto; padding: 0 16px 100px; }
+
+  .header { padding: 28px 0 0; border-bottom: 1px solid var(--paper3); margin-bottom: 24px; }
+  .header-top { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 16px; }
+  .logo-title { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: -0.5px; color: var(--ink); }
+  .logo-sub { font-size: 12px; color: var(--ink3); font-weight: 300; letter-spacing: 0.04em; margin-top: 2px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  .btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; border-radius: var(--radius); padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:active { transform: scale(0.97); }
+  .btn-ghost { background: transparent; color: var(--ink2); border: 1px solid var(--paper3); }
+  .btn-ghost:hover { background: var(--paper2); }
+  .btn-ink { background: var(--ink); color: var(--paper); }
+  .btn-ink:hover { background: var(--ink2); }
+  .btn-gold { background: var(--gold); color: #fff; font-size: 14px; font-weight: 500; padding: 11px 24px; border-radius: var(--tag-radius); font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.15s; }
+  .btn-gold:hover { background: #b07508; }
+  .btn-gold:active { transform: scale(0.97); }
+  .btn-icon { width: 34px; height: 34px; padding: 0; justify-content: center; border-radius: 50%; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-danger { color: #c44; }
+
+  .filter-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .search-wrap { position: relative; flex: 1; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink3); pointer-events: none; }
+  .search-input { width: 100%; padding: 9px 12px 9px 36px; border: 1px solid var(--paper3); border-radius: var(--radius); background: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink); outline: none; }
+  .search-input:focus { border-color: var(--ink2); }
+  .search-input::placeholder { color: var(--ink3); }
+  .tags-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tag-filter { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: var(--tag-radius); border: 1px solid var(--paper3); background: #fff; cursor: pointer; transition: all 0.12s; color: var(--ink2); }
+  .tag-filter:hover { border-color: var(--ink3); }
+  .tag-filter.active { border-color: transparent; color: #fff; }
+  .status-filters { display: flex; gap: 6px; margin-left: auto; }
+  .status-btn { font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 10px; border-radius: var(--tag-radius); border: 1px solid var(--paper3); background: #fff; cursor: pointer; color: var(--ink3); transition: all 0.12s; }
+  .status-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .results-count { font-size: 12px; color: var(--ink3); font-weight: 300; }
+
+  .quests-grid { display: flex; flex-direction: column; gap: 10px; }
+  .quest-card { background: #fff; border: 1px solid var(--paper3); border-radius: var(--radius); padding: 16px; transition: border-color 0.15s, box-shadow 0.15s; cursor: pointer; }
+  .quest-card:hover { border-color: var(--ink3); box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  .quest-card.status-done { background: var(--done-bg); border-color: #c0d8c0; }
+  .quest-card.status-skipped { background: var(--skip-bg); border-color: #d8c8c8; opacity: 0.7; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .card-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--ink); line-height: 1.3; }
+  .card-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
+  .quest-card:hover .card-actions { opacity: 1; }
+  .card-desc { font-size: 13px; color: var(--ink2); line-height: 1.55; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tag-pill { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: var(--tag-radius); color: #fff; }
+  .status-badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: var(--tag-radius); margin-left: auto; }
+  .status-badge.done { background: var(--done-bg); color: var(--done-ink); border: 1px solid #c0d8c0; }
+  .status-badge.skipped { background: var(--skip-bg); color: var(--skip-ink); border: 1px solid #d8c8c8; }
+
+  .empty { text-align: center; padding: 60px 20px; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink2); margin-bottom: 6px; }
+  .empty-desc { font-size: 13px; color: var(--ink3); }
+
+  .fab-area { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 100; filter: drop-shadow(0 4px 16px rgba(0,0,0,0.15)); }
+
+  .overlay { position: fixed; inset: 0; background: rgba(26,24,20,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { background: var(--paper); border-radius: 16px; width: 100%; max-width: 480px; padding: 28px; position: relative; animation: slideUp 0.2s ease; max-height: 90vh; overflow-y: auto; }
+  .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); }
+
+  .field { margin-bottom: 16px; }
+  .label { display: block; font-size: 11px; font-weight: 500; color: var(--ink3); margin-bottom: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .input, .textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--paper3); border-radius: var(--radius); background: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.12s; }
+  .input:focus, .textarea:focus { border-color: var(--ink2); }
+  .textarea { resize: vertical; min-height: 80px; }
+  .tag-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-option { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: var(--tag-radius); border: 2px solid transparent; cursor: pointer; transition: all 0.12s; color: #fff; opacity: 0.45; font-family: 'DM Sans', sans-serif; }
+  .tag-option.selected { opacity: 1; transform: scale(1.05); }
+  .modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 10px; }
+  .modal-footer-right { display: flex; gap: 8px; }
+
+  .random-card { background: var(--gold-bg); border: 1px solid var(--gold-border); border-radius: var(--radius); padding: 22px; margin: 16px 0; }
+  .random-card-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 8px; line-height: 1.3; }
+  .random-card-desc { font-size: 13px; color: var(--ink2); line-height: 1.6; margin-bottom: 14px; }
+  .random-card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .tag-manage-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 14px; }
+  .color-dots { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color 0.12s, transform 0.12s; }
+  .color-dot:hover { transform: scale(1.1); }
+  .color-dot.selected { border-color: var(--ink); }
+  .tags-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .tag-manage-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border: 1px solid var(--paper3); border-radius: var(--radius); }
+  .tag-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .tag-name-text { flex: 1; font-size: 13px; color: var(--ink2); }
+  .tag-count { font-size: 11px; color: var(--ink3); }
+  .delete-tag-btn { background: none; border: none; cursor: pointer; color: var(--ink3); font-size: 18px; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: color 0.12s; }
+  .delete-tag-btn:hover { color: #c44; }
+
+  .detail-status-row { display: flex; gap: 8px; margin: 12px 0 16px; }
+  .status-option { flex: 1; padding: 9px 6px; border-radius: var(--radius); border: 1.5px solid var(--paper3); background: #fff; cursor: pointer; text-align: center; font-size: 12px; font-weight: 500; color: var(--ink3); transition: all 0.12s; font-family: 'DM Sans', sans-serif; }
+  .status-option:hover { border-color: var(--ink3); }
+  .status-option.active-todo { border-color: var(--ink); background: var(--paper2); color: var(--ink); }
+  .status-option.active-done { border-color: #4a9a4a; background: var(--done-bg); color: var(--done-ink); }
+  .status-option.active-skipped { border-color: #9a7070; background: var(--skip-bg); color: var(--skip-ink); }
+
+  .divider { border: none; border-top: 1px solid var(--paper3); margin: 16px 0; }
+
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  svg { display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+
+<script>
+const API = "https://sidequests-production-5624.up.railway.app"
+
+const TAG_COLORS = ['#c8860a','#3a7a9a','#6a5a9a','#3a8a5a','#c05050','#8a6a3a','#4a8a7a','#9a5a7a','#5a7a3a','#c07030'];
+
+const DEFAULT_TAGS = [
+  {id:'t1',name:'paid',color:'#c8860a'},
+  {id:'t2',name:'group',color:'#3a7a9a'},
+  {id:'t3',name:'solo',color:'#6a5a9a'},
+  {id:'t4',name:'go out',color:'#3a8a5a'},
+  {id:'t5',name:'activity',color:'#c05050'},
+  {id:'t6',name:'creative',color:'#9a5a7a'},
+  {id:'t7',name:'chill',color:'#4a8a7a'},
+  {id:'t8',name:'free',color:'#5a7a3a'},
+];
+
+const DEFAULT_QUESTS = [
+  {id:'q1',title:'Take a random dance class',description:'Find a local studio offering a drop-in class in a style you\'ve never tried — salsa, breakdance, contemporary. Show up without overthinking it.',status:'todo',tagIds:['t1','t3','t4','t5'],createdAt:Date.now()-5*86400000},
+  {id:'q2',title:'Cook a dish from a country you\'ve never visited',description:'Pick a country at random from a map, find an authentic recipe online, and source the ingredients. No shortcuts.',status:'todo',tagIds:['t3','t8','t7'],createdAt:Date.now()-3*86400000},
+  {id:'q3',title:'Go to a museum alone on a weekday',description:'No agenda. Spend as long or as short as you want on each piece. Bring a notebook if you feel like it.',status:'done',tagIds:['t3','t8','t4'],createdAt:Date.now()-10*86400000},
+  {id:'q4',title:'Organise a mystery dinner for friends',description:'Cook a 3-course meal where each dish is a surprise. Send only a dress code. Nobody knows what they\'re getting.',status:'todo',tagIds:['t2','t1','t5'],createdAt:Date.now()-1*86400000},
+  {id:'q5',title:'Wake up before sunrise and watch it',description:'Pick a spot with a good view — a hill, a rooftop, a park. Bring coffee. No phone scrolling.',status:'skipped',tagIds:['t3','t8'],createdAt:Date.now()-7*86400000},
+  {id:'q6',title:'Attend a local open mic night',description:'Just watch — or bring something to perform. Either way, show up for strangers being brave.',status:'todo',tagIds:['t4','t2','t8'],createdAt:Date.now()-2*86400000},
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let quests = JSON.parse(localStorage.getItem('sq_quests') || 'null') || DEFAULT_QUESTS;
+let tags   = JSON.parse(localStorage.getItem('sq_tags')   || 'null') || DEFAULT_TAGS;
+let search = '';
+let activeTagIds = new Set();
+let activeStatus = 'all';
+let modal = null;
+let editingQuest = null;
+let detailQuest = null;
+let randomQuest = null;
+let formData = { title:'', description:'', tagIds:[] };
+let newTagName = '';
+let newTagColor = TAG_COLORS[0];
+
+function save() {
+  localStorage.setItem('sq_quests', JSON.stringify(quests));
+  localStorage.setItem('sq_tags',   JSON.stringify(tags));
+}
+
+function uid() { return '_' + Math.random().toString(36).slice(2,9); }
+
+// ── Computed ───────────────────────────────────────────────────────────────
+function filteredQuests() {
+  return quests.filter(q => {
+    if (activeStatus !== 'all' && q.status !== activeStatus) return false;
+    if (activeTagIds.size > 0 && ![...activeTagIds].every(tid => q.tagIds.includes(tid))) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      if (!q.title.toLowerCase().includes(s) && !(q.description||'').toLowerCase().includes(s)) return false;
+    }
+    return true;
+  });
+}
+function getTag(id) { return tags.find(t => t.id === id); }
+
+// ── Actions ────────────────────────────────────────────────────────────────
+function addQuest() {
+  if (!formData.title.trim()) return;
+  quests.unshift({id:uid(),title:formData.title.trim(),description:formData.description.trim(),status:'todo',tagIds:[...formData.tagIds],createdAt:Date.now()});
+  save(); closeModal();
+}
+function saveEdit() {
+  if (!formData.title.trim()) return;
+  quests = quests.map(q => q.id===editingQuest.id ? {...q,title:formData.title.trim(),description:formData.description.trim(),tagIds:[...formData.tagIds]} : q);
+  save(); closeModal();
+}
+function deleteQuest(id) {
+  if (!confirm('Delete this quest?')) return;
+  quests = quests.filter(q => q.id!==id);
+  save(); closeModal();
+}
+function setStatus(id, status) {
+  quests = quests.map(q => q.id===id ? {...q,status} : q);
+  if (detailQuest?.id===id) detailQuest = {...detailQuest,status};
+  save(); render();
+}
+function doRandom() {
+  const pool = filteredQuests().filter(q => q.status==='todo');
+  randomQuest = pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+  modal = 'random'; render();
+}
+function rollAgain() {
+  const pool = filteredQuests().filter(q => q.status==='todo' && q.id!==randomQuest?.id);
+  if (!pool.length) { randomQuest = null; render(); return; }
+  randomQuest = pool[Math.floor(Math.random()*pool.length)];
+  render();
+}
+function addTag() {
+  if (!newTagName.trim()) return;
+  tags.push({id:uid(),name:newTagName.trim(),color:newTagColor});
+  newTagName=''; save(); render();
+}
+function deleteTag(id) {
+  if (!confirm('Delete this tag? It will be removed from all quests.')) return;
+  tags = tags.filter(t => t.id!==id);
+  quests = quests.map(q => ({...q,tagIds:q.tagIds.filter(tid=>tid!==id)}));
+  save(); render();
+}
+function openAdd() { formData={title:'',description:'',tagIds:[]}; modal='add'; render(); }
+function openEdit(q) { editingQuest=q; formData={title:q.title,description:q.description||'',tagIds:[...q.tagIds]}; modal='edit'; render(); }
+function openDetail(q) { detailQuest=q; modal='detail'; render(); }
+function closeModal() { modal=null; editingQuest=null; detailQuest=null; randomQuest=null; render(); }
+function toggleFormTag(id) {
+  formData.tagIds = formData.tagIds.includes(id) ? formData.tagIds.filter(t=>t!==id) : [...formData.tagIds,id];
+  render();
+}
+function toggleFilterTag(id) {
+  if (activeTagIds.has(id)) activeTagIds.delete(id); else activeTagIds.add(id);
+  render();
+}
+
+// ── SVG Icons ──────────────────────────────────────────────────────────────
+const I = {
+  search: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
+  plus:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  tag:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`,
+  edit:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  trash:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
+  close:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  dice:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>`,
+};
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function h(tag, attrs={}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k==='cls') e.className=v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k==='html') e.innerHTML=v;
+    else if (k==='style' && typeof v==='object') Object.assign(e.style,v);
+    else e.setAttribute(k,v);
+  }
+  for (const c of kids.flat()) {
+    if (c==null||c===false) continue;
+    e.appendChild(typeof c==='string' ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+function ico(svg) { const s=document.createElement('span'); s.innerHTML=svg; return s.firstChild; }
+function pill(tagId) {
+  const t=getTag(tagId); if(!t) return null;
+  return h('span',{cls:'tag-pill',style:{background:t.color}},t.name);
+}
+
+function renderForm(isEdit) {
+  return h('div',{cls:'modal'},
+    h('div',{cls:'modal-header'},
+      h('h2',{cls:'modal-title'}, isEdit ? 'Edit quest' : 'New side quest'),
+      h('button',{cls:'btn btn-ghost btn-icon',onClick:closeModal}, ico(I.close))
+    ),
+    h('div',{cls:'field'},
+      h('label',{cls:'label'},'Title'),
+      h('input',{cls:'input',type:'text',placeholder:'e.g. Try a pottery class',value:formData.title,
+        onInput:e=>{formData.title=e.target.value;}})
+    ),
+    h('div',{cls:'field'},
+      h('label',{cls:'label'},'Description'),
+      h('textarea',{cls:'textarea',placeholder:'What\'s the quest? Any tips?',
+        onInput:e=>{formData.description=e.target.value;}},formData.description)
+    ),
+    h('div',{cls:'field'},
+      h('label',{cls:'label'},'Tags'),
+      h('div',{cls:'tag-picker'},
+        ...tags.map(t => h('button',{cls:'tag-option'+(formData.tagIds.includes(t.id)?' selected':''),
+          style:{background:t.color},onClick:()=>toggleFormTag(t.id)},t.name))
+      )
+    ),
+    h('div',{cls:'modal-footer'},
+      isEdit
+        ? h('button',{cls:'btn btn-ghost btn-danger',onClick:()=>deleteQuest(editingQuest.id)},ico(I.trash),' Delete')
+        : h('span',{}),
+      h('div',{cls:'modal-footer-right'},
+        h('button',{cls:'btn btn-ghost',onClick:closeModal},'Cancel'),
+        h('button',{cls:'btn btn-ink',onClick:isEdit?saveEdit:addQuest}, isEdit?'Save changes':'Add quest')
+      )
+    )
+  );
+}
+
+function renderRandom() {
+  const q = randomQuest;
+  const hasMore = filteredQuests().filter(x=>x.status==='todo'&&x.id!==q?.id).length > 0;
+  return h('div',{cls:'modal'},
+    h('div',{cls:'modal-header'},
+      h('h2',{cls:'modal-title',style:{fontStyle:'italic'}},'Your quest awaits'),
+      h('button',{cls:'btn btn-ghost btn-icon',onClick:closeModal},ico(I.close))
+    ),
+    q
+      ? h('div',{cls:'random-card'},
+          h('div',{cls:'random-card-title'},q.title),
+          q.description ? h('p',{cls:'random-card-desc'},q.description) : null,
+          h('div',{cls:'random-card-tags'},...q.tagIds.map(pill).filter(Boolean))
+        )
+      : h('div',{style:{textAlign:'center',padding:'32px 0',color:'var(--ink3)'}},
+          h('div',{style:{fontSize:'36px',marginBottom:'10px'}},'🎲'),
+          h('p',{},'No quests to roll — add some first.')
+        ),
+    h('div',{cls:'modal-footer'},
+      h('button',{cls:'btn btn-ghost',onClick:rollAgain,disabled:!hasMore},'Roll again'),
+      h('div',{cls:'modal-footer-right'},
+        q ? h('button',{cls:'btn btn-ink',onClick:()=>{setStatus(q.id,'done');closeModal();}},'Mark done') : null,
+        q ? h('button',{cls:'btn btn-ghost',onClick:()=>{openDetail(q);}}, 'View') : null,
+        h('button',{cls:'btn btn-ghost',onClick:closeModal},'Close')
+      )
+    )
+  );
+}
+
+function renderDetail() {
+  const q = quests.find(x=>x.id===detailQuest?.id) || detailQuest;
+  return h('div',{cls:'modal'},
+    h('div',{cls:'modal-header'},
+      h('h2',{cls:'modal-title',style:{fontFamily:"'DM Serif Display',serif",fontSize:'22px',lineHeight:'1.3'}},q.title),
+      h('button',{cls:'btn btn-ghost btn-icon',onClick:closeModal},ico(I.close))
+    ),
+    q.tagIds.length ? h('div',{cls:'card-footer',style:{marginBottom:'12px'}},...q.tagIds.map(pill).filter(Boolean)) : null,
+    q.description ? h('p',{style:{fontSize:'14px',color:'var(--ink2)',lineHeight:'1.7',marginBottom:'12px'}},q.description) : null,
+    h('label',{cls:'label'},'Status'),
+    h('div',{cls:'detail-status-row'},
+      ...[['todo','To do'],['done','Done'],['skipped','Skipped']].map(([s,l]) =>
+        h('button',{cls:'status-option'+(q.status===s?' active-'+s:''),onClick:()=>setStatus(q.id,s)},l)
+      )
+    ),
+    h('hr',{cls:'divider'}),
+    h('div',{cls:'modal-footer'},
+      h('button',{cls:'btn btn-ghost btn-danger',onClick:()=>deleteQuest(q.id)},ico(I.trash),' Delete'),
+      h('button',{cls:'btn btn-ink',onClick:()=>openEdit(q)},ico(I.edit),' Edit')
+    )
+  );
+}
+
+function renderTags() {
+  return h('div',{cls:'modal'},
+    h('div',{cls:'modal-header'},
+      h('h2',{cls:'modal-title'},'Manage tags'),
+      h('button',{cls:'btn btn-ghost btn-icon',onClick:closeModal},ico(I.close))
+    ),
+    h('div',{cls:'field'},
+      h('label',{cls:'label'},'New tag'),
+      h('div',{cls:'tag-manage-row'},
+        h('div',{style:{flex:1}},
+          h('input',{cls:'input',type:'text',placeholder:'Tag name',value:newTagName,
+            onInput:e=>{newTagName=e.target.value;},
+            onKeydown:e=>{if(e.key==='Enter')addTag();}}),
+          h('div',{cls:'color-dots'},
+            ...TAG_COLORS.map(c=>h('div',{cls:'color-dot'+(newTagColor===c?' selected':''),style:{background:c},
+              onClick:()=>{newTagColor=c;render();}}))
+          )
+        ),
+        h('button',{cls:'btn btn-ink',style:{alignSelf:'flex-end'},onClick:addTag},'Add')
+      )
+    ),
+    h('hr',{cls:'divider'}),
+    h('div',{cls:'tags-list'},
+      tags.length===0
+        ? h('p',{style:{color:'var(--ink3)',fontSize:'13px',padding:'8px 0'}},'No tags yet.')
+        : tags.map(t =>
+            h('div',{cls:'tag-manage-item'},
+              h('div',{cls:'tag-dot',style:{background:t.color}}),
+              h('span',{cls:'tag-name-text'},t.name),
+              h('span',{cls:'tag-count'},quests.filter(q=>q.tagIds.includes(t.id)).length+' quests'),
+              h('button',{cls:'delete-tag-btn',onClick:()=>deleteTag(t.id),title:'Delete'},'×')
+            )
+          )
+    )
+  );
+}
+
+function render() {
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+
+  const fq = filteredQuests();
+  const todoCount = fq.filter(q=>q.status==='todo').length;
+
+  // Header
+  root.appendChild(h('header',{cls:'header'},
+    h('div',{cls:'header-top'},
+      h('div',{},
+        h('div',{cls:'logo-title'},'Side Quests'),
+        h('div',{cls:'logo-sub'},'your adventure log')
+      ),
+      h('div',{cls:'header-actions'},
+        h('button',{cls:'btn btn-ghost',onClick:()=>{modal='tags';render();}},ico(I.tag),' Tags'),
+        h('button',{cls:'btn btn-ink',onClick:openAdd},ico(I.plus),' Add quest')
+      )
+    )
+  ));
+
+  // Filters
+  root.appendChild(h('div',{cls:'filter-bar'},
+    h('div',{style:{display:'flex',gap:'8px'}},
+      h('div',{cls:'search-wrap'},
+        h('span',{html:I.search,style:{position:'absolute',left:'11px',top:'50%',transform:'translateY(-50%)',color:'var(--ink3)',pointerEvents:'none'}}),
+        h('input',{cls:'search-input',type:'text',placeholder:'Search quests…',value:search,
+          onInput:e=>{search=e.target.value;render();}})
+      )
+    ),
+    h('div',{cls:'tags-row'},
+      ...tags.map(t=>h('button',{
+        cls:'tag-filter'+(activeTagIds.has(t.id)?' active':''),
+        style:activeTagIds.has(t.id)?{background:t.color,borderColor:t.color}:{},
+        onClick:()=>toggleFilterTag(t.id)
+      },t.name)),
+      h('div',{cls:'status-filters'},
+        ...[['all','All'],['todo','To do'],['done','Done'],['skipped','Skipped']].map(([s,l])=>
+          h('button',{cls:'status-btn'+(activeStatus===s?' active':''),onClick:()=>{activeStatus=s;render();}},l)
+        )
+      )
+    )
+  ));
+
+  // Results header
+  root.appendChild(h('div',{cls:'results-header'},
+    h('span',{cls:'results-count'},`${fq.length} quest${fq.length!==1?'s':''} · ${todoCount} to do`),
+    fq.length>0 ? h('button',{cls:'btn btn-ghost btn-sm',onClick:doRandom},ico(I.dice),' Surprise me') : h('span')
+  ));
+
+  // Quest list
+  if (fq.length===0) {
+    root.appendChild(h('div',{cls:'empty'},
+      h('div',{cls:'empty-icon'}, quests.length===0 ? '🗺️' : '🔍'),
+      h('p',{cls:'empty-title'}, quests.length===0 ? 'Your quest log is empty' : 'No quests match'),
+      h('p',{cls:'empty-desc'}, quests.length===0 ? 'Hit "Add quest" to log your first side adventure.' : 'Try different filters or search terms.')
+    ));
+  } else {
+    root.appendChild(h('div',{cls:'quests-grid'},
+      ...fq.map(q =>
+        h('div',{cls:'quest-card status-'+q.status,onClick:()=>openDetail(q)},
+          h('div',{cls:'card-top'},
+            h('div',{cls:'card-title'},q.title),
+            h('div',{cls:'card-actions'},
+              h('button',{cls:'btn btn-ghost btn-icon btn-sm',onClick:e=>{e.stopPropagation();openEdit(q);}},ico(I.edit)),
+              h('button',{cls:'btn btn-ghost btn-icon btn-sm btn-danger',onClick:e=>{e.stopPropagation();deleteQuest(q.id);}},ico(I.trash))
+            )
+          ),
+          q.description ? h('p',{cls:'card-desc'},q.description) : null,
+          h('div',{cls:'card-footer'},
+            ...q.tagIds.map(pill).filter(Boolean),
+            q.status!=='todo' ? h('span',{cls:'status-badge '+q.status},q.status==='done'?'Done':'Skipped') : null
+          )
+        )
+      )
+    ));
+  }
+
+  // FAB
+  root.appendChild(h('div',{cls:'fab-area'},
+    h('button',{cls:'btn-gold',onClick:doRandom},ico(I.dice),' Roll a quest')
+  ));
+
+  // Modal
+  if (modal) {
+    let content = null;
+    if (modal==='add') content=renderForm(false);
+    else if (modal==='edit') content=renderForm(true);
+    else if (modal==='random') content=renderRandom();
+    else if (modal==='detail') content=renderDetail();
+    else if (modal==='tags') content=renderTags();
+    if (content) {
+      const ov = h('div',{cls:'overlay',onClick:e=>{if(e.target===ov)closeModal();}},content);
+      root.appendChild(ov);
+    }
+  }
+}
+
+render();
+</script>
+</body>
+</html>
