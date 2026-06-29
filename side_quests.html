@@ -174,8 +174,11 @@ const DEFAULT_QUESTS = [
 ];
 
 // ── State ──────────────────────────────────────────────────────────────────
-let quests = JSON.parse(localStorage.getItem('sq_quests') || 'null') || DEFAULT_QUESTS;
-let tags   = JSON.parse(localStorage.getItem('sq_tags')   || 'null') || DEFAULT_TAGS;
+const API = "https://sidequests-production-5624.up.railway.app";
+
+let quests = [];
+let tags = [];
+
 let search = '';
 let activeTagIds = new Set();
 let activeStatus = 'all';
@@ -187,9 +190,33 @@ let formData = { title:'', description:'', tagIds:[] };
 let newTagName = '';
 let newTagColor = TAG_COLORS[0];
 
-function save() {
-  localStorage.setItem('sq_quests', JSON.stringify(quests));
-  localStorage.setItem('sq_tags',   JSON.stringify(tags));
+async function loadQuests() {
+    const res = await fetch(`${API}/quests`);
+    const data = await res.json();
+
+    quests = data.map(q => ({
+        id: q.id,
+        title: q.title,
+        description: q.description,
+        status: q.status,
+        createdAt: q.created_at,
+        tagIds: q.tags.map(t => t.id)
+    }));
+
+    render();
+}
+
+async function loadTags() {
+  const res = await fetch(`${API}/tags`);
+  tags = await res.json();
+  render();
+}
+
+async function load() {
+  await Promise.all([
+    loadQuests(),
+    loadTags()
+  ]);
 }
 
 function uid() { return '_' + Math.random().toString(36).slice(2,9); }
@@ -209,25 +236,75 @@ function filteredQuests() {
 function getTag(id) { return tags.find(t => t.id === id); }
 
 // ── Actions ────────────────────────────────────────────────────────────────
-function addQuest() {
+async function addQuest() {
   if (!formData.title.trim()) return;
-  quests.unshift({id:uid(),title:formData.title.trim(),description:formData.description.trim(),status:'todo',tagIds:[...formData.tagIds],createdAt:Date.now()});
-  save(); closeModal();
+
+  await fetch(`${API}/quests`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title: formData.title,
+      description: formData.description,
+      tag_ids: formData.tagIds
+    })
+  });
+
+  closeModal();
+  await loadQuests();
 }
-function saveEdit() {
+
+async function saveEdit() {
   if (!formData.title.trim()) return;
-  quests = quests.map(q => q.id===editingQuest.id ? {...q,title:formData.title.trim(),description:formData.description.trim(),tagIds:[...formData.tagIds]} : q);
-  save(); closeModal();
+
+  await fetch(`${API}/quests/${editingQuest.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title: formData.title,
+      description: formData.description,
+      tag_ids: formData.tagIds,
+      status: editingQuest.status
+    })
+  });
+
+  closeModal();
+  await loadQuests();
 }
-function deleteQuest(id) {
-  if (!confirm('Delete this quest?')) return;
-  quests = quests.filter(q => q.id!==id);
-  save(); closeModal();
+
+async function deleteQuest(id) {
+  if (!confirm("Delete this quest?")) return;
+
+  await fetch(`${API}/quests/${id}`, {
+    method: "DELETE"
+  });
+
+  closeModal();
+  await loadQuests();
 }
-function setStatus(id, status) {
-  quests = quests.map(q => q.id===id ? {...q,status} : q);
-  if (detailQuest?.id===id) detailQuest = {...detailQuest,status};
-  save(); render();
+async function setStatus(id, status) {
+  const quest = quests.find(q => q.id === id);
+
+  await fetch(`${API}/quests/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title: quest.title,
+      description: quest.description,
+      tag_ids: quest.tagIds,
+      status
+    })
+  });
+
+  if (detailQuest?.id === id)
+    detailQuest.status = status;
+
+  await loadQuests();
 }
 function doRandom() {
   const pool = filteredQuests().filter(q => q.status==='todo');
@@ -240,16 +317,31 @@ function rollAgain() {
   randomQuest = pool[Math.floor(Math.random()*pool.length)];
   render();
 }
-function addTag() {
+async function addTag() {
   if (!newTagName.trim()) return;
-  tags.push({id:uid(),name:newTagName.trim(),color:newTagColor});
-  newTagName=''; save(); render();
+
+  await fetch(`${API}/tags`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: newTagName,
+      color: newTagColor
+    })
+  });
+
+  newTagName = "";
+  await loadTags();
 }
-function deleteTag(id) {
-  if (!confirm('Delete this tag? It will be removed from all quests.')) return;
-  tags = tags.filter(t => t.id!==id);
-  quests = quests.map(q => ({...q,tagIds:q.tagIds.filter(tid=>tid!==id)}));
-  save(); render();
+async function deleteTag(id) {
+  if (!confirm("Delete this tag?")) return;
+
+  await fetch(`${API}/tags/${id}`, {
+    method: "DELETE"
+  });
+
+  await load();
 }
 function openAdd() { formData={title:'',description:'',tagIds:[]}; modal='add'; render(); }
 function openEdit(q) { editingQuest=q; formData={title:q.title,description:q.description||'',tagIds:[...q.tagIds]}; modal='edit'; render(); }
@@ -519,7 +611,7 @@ function render() {
   }
 }
 
-render();
+load();
 </script>
 </body>
 </html>
