@@ -213,7 +213,7 @@ async function apiFetch(path, options = {}) {
 }
 
 async function loadQuests() {
-  const data = await apiFetch('/quests');
+  const data = await apiFetch('/quests/');
   quests = data.map(q => ({
     id: q.id,
     title: q.title,
@@ -225,7 +225,7 @@ async function loadQuests() {
 }
 
 async function loadTags() {
-  tags = await apiFetch('/tags');
+  tags = await apiFetch('/tags/');
 }
 
 async function load() {
@@ -259,7 +259,7 @@ async function addQuest() {
   if (!formData.title.trim()) { formError = 'Title is required.'; render(); return; }
   formError = '';
   try {
-    await apiFetch('/quests', {
+    await apiFetch('/quests/', {
       method: "POST",
       body: JSON.stringify({
         title: formData.title.trim(),
@@ -346,7 +346,7 @@ function rollAgain() {
 async function addTag() {
   if (!newTagName.trim()) return;
   try {
-    await apiFetch('/tags', {
+    await apiFetch('/tags/', {
       method: "POST",
       body: JSON.stringify({ name: newTagName.trim(), color: newTagColor })
     });

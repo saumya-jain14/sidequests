@@ -5,7 +5,7 @@ from .routers import quests, tags
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Side Quests API", version="1.0.0")
+app = FastAPI(title="Side Quests API", version="1.0.0", redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
